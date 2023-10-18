@@ -12,7 +12,7 @@ from math import sqrt
 class Controller:
     def __init__(self):
 
-        rospy.init_node('contorller', anonymous=True)
+        rospy.init_node('controller', anonymous=True)
         rospy.Subscriber("/lane_path", Path, self.path_callback)
         rospy.Subscriber("/Ego_topic", EgoVehicleStatus, self.status_callback)
         self.control_pub = rospy.Publisher('ctrl_cmd', CtrlCmd, queue_size=1)
