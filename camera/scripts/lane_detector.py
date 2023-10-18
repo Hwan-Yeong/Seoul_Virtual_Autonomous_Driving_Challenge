@@ -493,9 +493,12 @@ if __name__ == '__main__':
     ### sensor parameter json file ==================
     rp = rospkg.RosPack()
     
-    currentPath = rp.get_path("beginner_tutorials")
+    package_name = "camera"
+    folder_name = "sensor"
+    file_name = "sensor_params.json"
+    file_path = os.path.join(rp.get_path(package_name), folder_name, file_name)
     
-    with open(os.path.join(currentPath, 'sensor/sensor_params.json'), 'r') as fp:
+    with open(file_path, 'r') as fp:
         sensor_params = json.load(fp)
 
     params_cam = sensor_params["params_cam"]
