@@ -8,10 +8,15 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES control
-#  CATKIN_DEPENDS message_generation roscpp rospy std_msgs
+  CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
 

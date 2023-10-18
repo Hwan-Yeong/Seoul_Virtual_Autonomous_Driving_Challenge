@@ -13,7 +13,7 @@ class Controller:
     def __init__(self):
 
         rospy.init_node('controller', anonymous=True)
-        rospy.Subscriber("/lane_path", Path, self.path_callback)
+        rospy.Subscriber("/path", Path, self.path_callback)
         rospy.Subscriber("/Ego_topic", EgoVehicleStatus, self.status_callback)
         self.control_pub = rospy.Publisher('ctrl_cmd', CtrlCmd, queue_size=1)
 
@@ -44,6 +44,10 @@ class Controller:
                 self.ctrl_cmd_msg.velocity = self.target_velocity
                 # self.ctrl_cmd_msg.accel = 1.0
                 # self.ctrl_cmd_msg.brake = 0.0
+                
+                self.control_pub.publish(self.ctrl_cmd_msg)
+                
+            rate.sleep()
 
 
     def path_callback(self, msg):
@@ -68,7 +72,7 @@ class Controller:
         return currnet_waypoint
     
     def cal_stanley_control(self, ):
-        steering = 0.1
+        steering = 0.0
         return steering
 
     

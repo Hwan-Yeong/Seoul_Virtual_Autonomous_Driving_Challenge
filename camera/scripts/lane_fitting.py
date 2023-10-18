@@ -29,19 +29,16 @@ class IMGParser:
         self.img_bgr = None
         self.img_lane = None
         self.edges = None
-        
-        # ===================================================
-        # TODO: define target lane color (HSV) & roi
+
         self.lower_wlane = np.array([0,0,200])
         self.upper_wlane = np.array([180,255,255])
 
         self.lower_ylane = np.array([10,100,100])
         self.upper_ylane = np.array([40,255,255])
 
-        # bottom half of full image
+        #self.crop_pts = np.array([[[0,0],[640,0],[640,480],[0,480]]])
         self.crop_pts = np.array([[[0,240],[640,240],[640,480],[0,480]]])
-        # ===================================================
-                
+        
         if np.sum(self.lower_wlane) == 0 or np.sum(self.upper_wlane) == 0 or \
         np.sum(self.lower_ylane) == 0 or np.sum(self.upper_ylane) == 0 or \
         np.sum(self.crop_pts) == 0:
@@ -490,9 +487,10 @@ def draw_lane_img(img, leftx, lefty, rightx, righty):
     return point_np
 
 
+
+
 if __name__ == '__main__':
     
-    ### sensor parameter json file ==================
     rp = rospkg.RosPack()
     
     package_name = "camera"
@@ -504,9 +502,8 @@ if __name__ == '__main__':
         sensor_params = json.load(fp)
 
     params_cam = sensor_params["params_cam"]
-    ### =============================================
 
-    rospy.init_node('lane_detector', anonymous=True)
+    rospy.init_node('lane_fitting', anonymous=True)
 
     image_parser = IMGParser()
     bev_op = BEVTransform(params_cam=params_cam)
@@ -544,10 +541,9 @@ if __name__ == '__main__':
 
             cv2.imshow("birdview", img_lane_fit)
             cv2.imshow("img_warp", img_warp)
-            # cv2.imshow("origin_img", image_parser.img_bgr)
+            cv2.imshow("origin_img", image_parser.img_bgr)
             cv2.waitKey(1)
             print(f"Caemra sensor was connected !")
-            is_image = False
 
         else:
             print("[1] can't subscribe '/image_jpeg/compressed' topic... \n    please check your Camera sensor connection")
