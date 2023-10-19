@@ -5,15 +5,13 @@ import rospy
 import rospkg
 from math import sqrt
 from morai_msgs.msg import EgoVehicleStatus
-from nav_msgs.msg import Odometry
-
 
 class pathMaker :
     
     def __init__(self, pkg_name, path_name):
         rospy.init_node('path_maker', anonymous=True)
         # /Ego_topic 토픽 구독
-        rospy.Subscriber("/odom", Odometry, self.status_callback)
+        rospy.Subscriber("/Ego_topic", EgoVehicleStatus, self.status_callback)
         # 초기화
         self.prev_x = 0
         self.prev_y = 0
@@ -31,8 +29,8 @@ class pathMaker :
         self.f.close()
 
     def path_make(self):
-        x=self.status_msg.pose.pose.orientation.x
-        y=self.status_msg.pose.pose.orientation.y
+        x=self.status_msg.position.x
+        y=self.status_msg.position.y
         distance=sqrt(pow(x-self.prev_x,2)+pow(y-self.prev_y,2))
         # 이전 waypoint와의 거리가 0.3 이상이어야 기록
         if distance > 0.3:

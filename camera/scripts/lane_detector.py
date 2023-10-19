@@ -531,6 +531,8 @@ if __name__ == '__main__':
 
             x_pred, y_pred_l, y_pred_r = curve_learner.fit_curve(lane_pts)
 
+            print("number of lane_path: ", len(x_pred))
+
             curve_learner.write_path_msg(x_pred, y_pred_l, y_pred_r)
 
             curve_learner.pub_path_msg()
