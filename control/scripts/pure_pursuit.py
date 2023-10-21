@@ -17,52 +17,79 @@ class PurePursuit:
 
         rospy.init_node('pure_pursuit', anonymous=True)
 
-        rospy.Subscriber("/path", Path, self.path_callback)
+        # rospy.Subscriber("/path", Path, self.path_callback)
+        rospy.Subscriber("/custom_path", Path, self.path_callback)
         rospy.Subscriber("/Ego_topic", EgoVehicleStatus, self.status_callback)
         rospy.Subscriber("/CollisionData", CollisionData, self.col_callback)
         rospy.Subscriber("/odom", Odometry, self.odom_callback)
         self.control_pub = rospy.Publisher('ctrl_cmd', CtrlCmd, queue_size=1)
 
         self.ctrl_cmd_msg = CtrlCmd()
-        self.ctrl_cmd_msg.longlCmdType = 2
+        self.ctrl_cmd_msg.longlCmdType = 1
 
         self.is_path = False
         self.is_status = False
         self.is_col = False
         self.is_odom = False
-
-        self.angle = 0.0
+        
+        # PID
+        # ==========================
+        self.kp = 0.56
+        self.ki = 0.0007
+        self.kd = 0.2
+        self.target_velocity = 30
+        self.integral_limit = 10.0 # Clamping (anti_windup)
+        # ==========================
+        
+        self.max_velocity = 50
         self.lookahead_distance = 0.0
-        # self.pid = PID(0.56, 0.0007, 0.2)
-        # self.mm1 = MovingAverage(20)
+        
+        self.pid = PID(self.kp, self.ki, self.kd, self.target_velocity, self.integral_limit)
+        # self.movav = MovingAverage(20)
+        
         
         # TODO // IONIQ5 specifications
         # ===================================================
         self.vehicle_length = 4.635
         self.wheel_length = 3.0
-        self.target_velocity = 30
-        self.max_velocity = 50
         # ===================================================
 
         rate = rospy.Rate(30) # 30hz
         while not rospy.is_shutdown():
-            if self.is_path == True and self.is_status == True and self.is_odom == True:
+            if self.is_path == True and self.is_status == True:
                 # self.current_waypoint = self.get_current_waypoint(self.status_msg, self.desired_path)
 
-                # 종방향 속도제어 먼저 하고,
+                # self.target_velocity 결정 (장애물 및 곡률 기반 속도 결정)
 
-                # 속도 기반 lfd 만들어거 횡방향 조향 제어
-                desired_path = self.coordinate_transform_global2vehicle(self.lane_path)
-                self.lookahead_distance = self.status_msg.velocity / self.max_velocity * sqrt(desired_path[-1][0]**2 + desired_path[-1][1]**2)
+                # 종방향 속도제어 먼저         
+                output_velocity = self.pid.compute(self.status_msg.velocity.x * 3.6) # [kph]
+                
+                if output_velocity > 0.0:
+                    self.ctrl_cmd_msg.accel = 1.0
+                    self.ctrl_cmd_msg.brake = 0.0
+                    
+                elif -5.0 < output_velocity <= 0.0:
+                    self.ctrl_cmd_msg.accel = 0.0
+                    self.ctrl_cmd_msg.brake = 0.0
+                    
+                else:
+                    self.ctrl_cmd_msg.accel = 0.0
+                    self.ctrl_cmd_msg.brake = 1.0
+
+                # 속도 기반 lookahead_distance 만들어서 횡방향 조향 제어
+                desired_path = self.path_to_array(self.lane_path)
+                current_vel_magnitude = np.linalg.norm(np.array([self.status_msg.velocity.x, self.status_msg.velocity.y, self.status_msg.velocity.z]))
+                self.lookahead_distance =  current_vel_magnitude / self.max_velocity * sqrt(desired_path[-1][0]**2 + desired_path[-1][1]**2)
                 self.lookahead_point = min(desired_path, key=lambda c:abs(sqrt(c[0]**2 + c[1]**2)-self.lookahead_distance))
 
-                alpha = self.lookahead_point[1]/self.lookahead_point[0]
-                delta = atan2(2*self.vehicle_length*alpha, self.lookahead_distance)
 
-                self.ctrl_cmd_msg.velocity = self.target_velocity
+                if self.lookahead_point[0] != 0:
+                    alpha = self.lookahead_point[1] / self.lookahead_point[0]
+                    delta = atan2(2 * self.vehicle_length * alpha, self.lookahead_distance)
+                else:
+                    delta = 0 # go straight
+
                 self.ctrl_cmd_msg.steering = delta
-                # self.ctrl_cmd_msg.accel = 1.0
-                # self.ctrl_cmd_msg.brake = 0.0
                 
                 self.control_pub.publish(self.ctrl_cmd_msg)
                 
@@ -101,15 +128,19 @@ class PurePursuit:
     #             currnet_waypoint = i
     #     return currnet_waypoint
 
-    def coordinate_transform_global2vehicle(self, lane_path):
-        x = lane_path.pose.pose.position.x
-        y = lane_path.pose.pose.position.y
-        # =================================================================
-        # 기존 path가 취하는 좌표계 => 차량 좌표계로 변환시켜주는 과정 필요
-        # lane_path에서 어떤 기준 좌표계를 사용하는지 몰라 구체적인 건 아직 못짬
-        # =================================================================
-        # desired_path에 담기는 정보가 [(x0, y0), (x1, y1), ... , (xf, yf)] 형태가 되어야 한다.
-        desired_path = lane_path
+    def path_to_array(self, lane_path):
+        if lane_path is None or len(lane_path.poses) != 60:
+            return None
+
+        desired_path = []
+
+        for pose in lane_path.poses:
+            x = pose.pose.position.x
+            y = pose.pose.position.y
+            desired_path.append((x, y))
+
+        desired_path = np.array(desired_path)
+
         return desired_path
     
     def cal_stanley_control(self, ):
@@ -139,20 +170,31 @@ class PurePursuit:
 #             s += self.data[i] * self.weights[i]
 #         return s / sum(self.weights[:len(self.data)])
 
-# class PID:
-#     def __init__(self, kp, ki, kd):
-#         self.Kp = kp
-#         self.Ki = ki
-#         self.Kd = kd
-#         self.p_error = 0.0
-#         self.i_error = 0.0
-#         self.d_error = 0.0
+class PID:
+    def __init__(self, kp, ki, kd, target_value, integral_limit):
+        self.Kp = kp
+        self.Ki = ki
+        self.Kd = kd
+        self.target_value = target_value
+        self.prev_error = 0
+        self.integral = 0
+        self.integral_limit = integral_limit
 
-#     def pid_control(self, cte):
-#         self.d_error = cte - self.p_error
-#         self.p_error = cte
-#         self.i_error += cte
-#         return self.Kp * self.p_error + self.Ki * self.i_error + self.Kd * self.d_error
+    def compute(self, current_value):
+        
+        error = self.target_value - current_value
+        
+        self.integral += error
+        if self.integral > self.integral_limit:
+            self.integral = self.integral_limit
+        elif self.integral < -self.integral_limit:
+            self.integral = -self.integral_limit
+            
+        derivative = error - self.prev_error
+        control_output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
+        self.prev_error = error
+        
+        return control_output
     
 if __name__ == '__main__':
     try:
