@@ -6,12 +6,14 @@ import numpy as np
 
 from tf.transformations import euler_from_quaternion
 from math import sin, sqrt, atan2, pi
+from sklearn.cluster import DBSCAN
 
 from morai_msgs.msg  import EgoVehicleStatus, CollisionData, CtrlCmd
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, PoseArray,Pose
 from nav_msgs.msg import Path, Odometry
-from std_msgs.msg import Float64
-
+from std_msgs.msg import Float64, Float32
+from sensor_msgs.msg import PointCloud2
+import sensor_msgs.point_cloud2 as pc2
 
 class PurePursuit:
     def __init__(self):
@@ -20,9 +22,12 @@ class PurePursuit:
 
         # rospy.Subscriber("/path", Path, self.path_callback)
         rospy.Subscriber("/custom_path", Path, self.path_callback)
+        rospy.Subscriber("/odom", Odometry, self.odom_callback)
+        rospy.Subscriber("/dist_forward", Float32, self.scan_dist_callback)
+        rospy.Subscriber("/clusters", PoseArray, self.scan_pose_callback)
+
         rospy.Subscriber("/Ego_topic", EgoVehicleStatus, self.status_callback)
         rospy.Subscriber("/CollisionData", CollisionData, self.col_callback)
-        rospy.Subscriber("/odom", Odometry, self.odom_callback)
 
         self.target_velocity_pub = rospy.Publisher('target_velocity', Float64, queue_size=1)
         self.control_pub = rospy.Publisher('ctrl_cmd', CtrlCmd, queue_size=1)
@@ -34,6 +39,8 @@ class PurePursuit:
         self.is_status = False
         self.is_col = False
         self.is_odom = False
+        self.is_scan_dist = False
+        self.is_scan_pose = False
 
         self.is_obstacle_front = False
         self.is_obstacle_back = False
@@ -76,9 +83,9 @@ class PurePursuit:
 
         rate = rospy.Rate(30) # 30hz
         while not rospy.is_shutdown():
-            if self.is_path == True and self.is_status == True and self.is_col == True:
+            if self.is_path == True and self.is_status == True:
                 
-                self.obstacle_distance = sqrt((self.status_msg.position.x - self.col_msg.global_offset_x)**2 + (self.status_msg.position.y - self.col_msg.global_offset_y)**2)
+                self.obstacle_distance = sqrt((self.status_msg.position.x - self.scan_pose.poses[0].position.x)**2 + (self.status_msg.position.y - self.scan_pose.poses[0].position.y)**2)
                 self.safe_speed = self.calulate_safe_speed(self.obstacle_distance)
 
                 if self.obstacle_distance < self.safety_distance:
@@ -155,6 +162,14 @@ class PurePursuit:
         self.current_postion.x = msg.pose.pose.position.x
         self.current_postion.y = msg.pose.pose.position.y
 
+    def scan_dist_callback(self, msg):
+        self.is_scan_dist = True
+        self.scan_dist = msg
+
+    def scan_pose_callback(self, msg):
+        self.is_scan_pose = True
+        self.scan_pose = msg
+
     def path_to_array(self, lane_path):
         if lane_path is None or len(lane_path.poses) != 60:
             return None
@@ -184,11 +199,10 @@ class PurePursuit:
         return safe_speed
     
     def obstacle_detector(self):
-        diff_x = self.col_msg.global_offset_x - self.status_msg.position.x
-        diff_y = self.col_msg.global_offset_y - self.status_msg.position.y
+        diff_x = self.scan_pose.poses[0].position.x - self.status_msg.position.x
+        diff_y = self.scan_pose.poses[0].position.y - self.status_msg.position.y
 
-        obstacle_angle  = atan2(diff_y, diff_x)
-        distance_vehicle_to_obstacle = sqrt(diff_x**2 + diff_y**2)
+        obstacle_angle = atan2(diff_y, diff_x)
 
         if -pi/2 < obstacle_angle  < pi/2:
             self.is_obstacle_front = True
