@@ -159,8 +159,7 @@ class PurePursuit:
         self.is_odom = True
         odom_quaternion = (msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w)
         self.vehicle_yaw = euler_from_quaternion(odom_quaternion)
-        self.current_postion.x = msg.pose.pose.position.x
-        self.current_postion.y = msg.pose.pose.position.y
+        self.odom_msg = msg
 
     def scan_dist_callback(self, msg):
         self.is_scan_dist = True

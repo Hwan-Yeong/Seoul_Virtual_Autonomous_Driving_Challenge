@@ -18,7 +18,7 @@ class PurePursuit:
         rospy.init_node('pure_pursuit', anonymous=True)
 
         # rospy.Subscriber("/path", Path, self.path_callback)
-        rospy.Subscriber("/custom_path", Path, self.path_callback)
+        rospy.Subscriber("/local_path", Path, self.path_callback)
         rospy.Subscriber("/Ego_topic", EgoVehicleStatus, self.status_callback)
         rospy.Subscriber("/CollisionData", CollisionData, self.col_callback)
         rospy.Subscriber("/odom", Odometry, self.odom_callback)
@@ -112,8 +112,7 @@ class PurePursuit:
         self.is_odom = True
         odom_quaternion = (msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w)
         self.vehicle_yaw = euler_from_quaternion(odom_quaternion)
-        self.current_postion.x = msg.pose.pose.position.x
-        self.current_postion.y = msg.pose.pose.position.y
+        self.odom_msg = msg
 
     # def get_current_waypoint(self, ego_status, desired_path):
     #     min_dist = float('inf')
@@ -129,7 +128,8 @@ class PurePursuit:
     #     return currnet_waypoint
 
     def path_to_array(self, lane_path):
-        if lane_path is None or len(lane_path.poses) != 60:
+        # if lane_path is None or len(lane_path.poses) != 60:
+        if lane_path is None:
             return None
 
         desired_path = []
