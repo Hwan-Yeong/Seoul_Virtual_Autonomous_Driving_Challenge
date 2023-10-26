@@ -32,8 +32,8 @@ class pathMaker :
         x=self.odom_msg.pose.pose.position.x
         y=self.odom_msg.pose.pose.position.y
         distance=sqrt(pow(x-self.prev_x,2)+pow(y-self.prev_y,2))
-        # 이전 waypoint와의 거리가 0.3 이상이어야 기록
-        if distance > 1.0:
+        # 이전 waypoint와의 거리가 2 meter 이상이어야 기록
+        if distance > 2.0:
             data='{0}\t{1}\n'.format(x,y)
             self.f.write(data)
             self.f.flush()
@@ -47,7 +47,7 @@ class pathMaker :
 
 if __name__ == '__main__' :
     try:
-        p_m=pathMaker("path_planner", "path/path")
+        p_m=pathMaker("path_planner", "path/path_line_1")
         rospy.spin()
     except rospy.ROSInternalException:
         pass
