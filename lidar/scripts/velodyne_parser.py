@@ -44,7 +44,7 @@ class SCANParser:
 
             angle = np.arctan2(point[1], point[0])
 
-            if point[0] > 0 and point[2] > -1.3 and dist < 15:
+            if point[0] > 0 and point[2] > -1.3 and dist < 50:
                 point_list.append((point[0], point[1], point[2], point[3], dist, angle))
 
 
@@ -64,7 +64,7 @@ class SCANParser:
         if len(d1) > 0:
             return np.min(d1)
         else:
-            return 30.000
+            return 50.000
         
         # r1_bool = self.pc_np[:, 5] > -7/180*np.pi
 
