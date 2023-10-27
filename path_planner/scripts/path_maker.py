@@ -47,7 +47,7 @@ class pathMaker :
 
 if __name__ == '__main__' :
     try:
-        p_m=pathMaker("path_planner", "path/path_line_1")
+        p_m=pathMaker("path_planner", "path/global_path_lane_2")
         rospy.spin()
     except rospy.ROSInternalException:
         pass

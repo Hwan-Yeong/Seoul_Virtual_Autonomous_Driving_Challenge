@@ -52,17 +52,20 @@ class pure_pursuit :
 
         self.forward_point = Point()
         self.current_postion = Point()
+        
+        self.scan_dist_buffer = []
 
         self.vehicle_length = 4.635
         self.lfd = 20
         self.min_lfd = 10
         self.max_lfd = 30
         self.lfd_gain = 0.78
-        self.target_velocity = 50
+        ########################## tuning ##########################
+        self.target_velocity = 40
         self.obstacle_safety_speed = 30.0 # 장애물 회피 안전속도 15 kph
-        self.safety_dist = 40.0 # 장애물 안전거리
-        
-        self.scan_dist_buffer = []
+        self.safety_dist = 15.0 # 장애물 안전거리
+        self.buffer_size = 5
+        ############################################################
 
         self.pid = pidControl()
         self.vel_planning = velocityPlanning(self.target_velocity/3.6, 0.15)
@@ -102,6 +105,8 @@ class pure_pursuit :
                             if self.lc_complete:
                                 self.changing_lane = False
                                 self.lane_flag = 2
+                                self.scan_dist_buffer = []
+                                # rospy.loginfo("LC complete!")
 
                         else:
                             self.changing_lane = True
@@ -109,19 +114,20 @@ class pure_pursuit :
                             if self.lc_complete:
                                 self.changing_lane = False
                                 self.lane_flag = 1
+                                self.scan_dist_buffer = []
+                                # rospy.loginfo("LC complete!")
 
                 else:
                     # LK
                     if self.lane_flag == 1:
-                        self.changing_lane = False
                         self.pure_pursuit_drive(self.global_path_lane_1)
                     else:
-                        self.changing_lane = False
                         self.pure_pursuit_drive(self.global_path_lane_2)
                         
+                        
                 # ========================== Monitoring ==========================
-                rospy.loginfo(f"current lane: {self.lane_flag}")
-                rospy.loginfo(f"changing_lane: {self.changing_lane}")
+                # rospy.loginfo(f"current lane: {self.lane_flag}")
+                # rospy.loginfo(f"changing_lane: {self.changing_lane}")
                 # ================================================================
                 
             else:
@@ -174,7 +180,7 @@ class pure_pursuit :
             if self.is_scan_dist:
                 if float(self.scan_dist.data) < self.safety_dist:
                     self.scan_dist_buffer.append(float(self.scan_dist.data))
-                    if len(self.scan_dist_buffer) == 10:
+                    if len(self.scan_dist_buffer) == self.buffer_size:
                         self.changing_lane = True
                         self.scan_dist_buffer = []
                 else:

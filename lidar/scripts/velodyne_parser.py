@@ -44,7 +44,7 @@ class SCANParser:
 
             angle = np.arctan2(point[1], point[0])
 
-            if point[0] > 0 and point[2] > -1.3 and dist < 50:
+            if point[0] > 0 and point[2] > -1.15 and dist < 50:
                 point_list.append((point[0], point[1], point[2], point[3], dist, angle))
 
 
@@ -55,9 +55,9 @@ class SCANParser:
 
     def calc_dist_forward(self):
         
-        r1_bool = self.pc_np[:, 1] > -1.3
+        r1_bool = self.pc_np[:, 1] > -1.0
 
-        r2_bool = self.pc_np[:, 1] < 1.3
+        r2_bool = self.pc_np[:, 1] < 1.0
         
         d1 = self.pc_np[r1_bool & r2_bool, 4]
 
