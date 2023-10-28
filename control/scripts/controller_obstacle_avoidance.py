@@ -61,10 +61,10 @@ class pure_pursuit :
         self.max_lfd = 30
         self.lfd_gain = 0.78
         ########################## tuning ##########################
-        self.target_velocity = 40
+        self.target_velocity = 45
         self.obstacle_safety_speed = 30.0 # 장애물 회피 안전속도 15 kph
-        self.safety_dist = 15.0 # 장애물 안전거리
-        self.buffer_size = 5
+        self.safety_dist = 18.0 # 장애물 안전거리
+        self.buffer_size = 6
         ############################################################
 
         self.pid = pidControl()

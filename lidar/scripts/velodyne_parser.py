@@ -55,9 +55,9 @@ class SCANParser:
 
     def calc_dist_forward(self):
         
-        r1_bool = self.pc_np[:, 1] > -1.0
+        r1_bool = self.pc_np[:, 1] > - 0.9
 
-        r2_bool = self.pc_np[:, 1] < 1.0
+        r2_bool = self.pc_np[:, 1] < 0.9
         
         d1 = self.pc_np[r1_bool & r2_bool, 4]
 
