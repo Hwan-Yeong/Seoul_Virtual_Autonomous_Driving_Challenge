@@ -62,7 +62,7 @@ class path_pub :
                             tmp_pose.pose.position.x=self.global_path_msg.poses[num].pose.position.x
                             tmp_pose.pose.position.y=self.global_path_msg.poses[num].pose.position.y
                             tmp_pose.pose.orientation.w=1
-                            local_path_pathmsg.poses.append(tmp_pose)
+                            local_path_msg.poses.append(tmp_pose)
                 self.local_path_pub.publish(local_path_msg)
 
             rate.sleep()

@@ -8,3 +8,7 @@ z : 0.58
 roll : 0.0
 pitch : 0.0
 yaw : 0.0
+
+width: 640
+height: 480
+FOV: 20

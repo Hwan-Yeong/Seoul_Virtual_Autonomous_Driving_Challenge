@@ -45,6 +45,7 @@ class pure_pursuit :
         self.is_scan_pose = False
         self.changing_lane = False
         self.prev_changing_lane = False
+        self.is_lc_complete = False
 
         self.lane_flag = 1
 
@@ -56,19 +57,19 @@ class pure_pursuit :
         self.scan_dist_buffer = []
 
         self.vehicle_length = 4.635
-        self.lfd = 20
+        self.lfd = 25
         self.min_lfd = 10
         self.max_lfd = 30
-        self.lfd_gain = 0.78
+        self.lfd_gain = 0.8 #0.78
         ########################## tuning ##########################
-        self.target_velocity = 45
+        self.target_velocity = 60
         self.obstacle_safety_speed = 30.0 # 장애물 회피 안전속도 15 kph
-        self.safety_dist = 18.0 # 장애물 안전거리
-        self.buffer_size = 6
+        self.safety_dist = 25.0 # 장애물 안전거리
+        self.buffer_size = 10
         ############################################################
 
         self.pid = pidControl()
-        self.vel_planning = velocityPlanning(self.target_velocity/3.6, 0.15)
+        self.vel_planning = velocityPlanning(self.target_velocity/3.6, 0.5) #0.15
         while True:
             if self.is_global_path_lane_1 == True:
                 self.velocity_list_lane_1 = self.vel_planning.curvedBaseVelocity(self.global_path_lane_1, 50)
@@ -102,7 +103,7 @@ class pure_pursuit :
                         if self.lane_flag == 1:
                             self.changing_lane = True
                             self.pure_pursuit_drive(self.global_path_lane_2)
-                            if self.lc_complete:
+                            if self.is_lc_complete == self.lc_complete():
                                 self.changing_lane = False
                                 self.lane_flag = 2
                                 self.scan_dist_buffer = []
@@ -111,7 +112,7 @@ class pure_pursuit :
                         else:
                             self.changing_lane = True
                             self.pure_pursuit_drive(self.global_path_lane_1)
-                            if self.lc_complete:
+                            if self.is_lc_complete == self.lc_complete():
                                 self.changing_lane = False
                                 self.lane_flag = 1
                                 self.scan_dist_buffer = []
@@ -126,8 +127,8 @@ class pure_pursuit :
                         
                         
                 # ========================== Monitoring ==========================
-                # rospy.loginfo(f"current lane: {self.lane_flag}")
-                # rospy.loginfo(f"changing_lane: {self.changing_lane}")
+                rospy.loginfo(f"current lane: {self.lane_flag}")
+                rospy.loginfo(f"changing_lane: {self.changing_lane}")
                 # ================================================================
                 
             else:
@@ -205,8 +206,10 @@ class pure_pursuit :
                 min_dist = dist
                 
         if min_dist < 0.001: # LC 판단 기준값
+            self.is_lc_complete = True
             return True
         else:
+            self.is_lc_complete = False
             return False
             
     def get_current_waypoint(self,ego_status,global_path):
@@ -301,12 +304,12 @@ class pure_pursuit :
 
 class pidControl: 
     def __init__(self):
-        self.p_gain = 0.05
+        self.p_gain = 0.3 #0.05
         self.i_gain = 0.00053 #1/100
         self.d_gain = 0.05 # 1/2
         self.prev_error = 0
         self.i_control = 0
-        self.controlTime = 0.02
+        self.controlTime = 0.03 #0.02
 
     def pid(self,target_vel, current_vel):
         error = target_vel - current_vel
